@@ -16,11 +16,18 @@
     register: cert
     become: yes
 
-  - name: get certificates if needed
-    command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini --test-cert
+  - name: get certificates
+    command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini
     args:
       chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false)
+    when: (cert.stat.exists == false) and (letsencrypt_staging is undefined)
+    become_user: root
+
+  - name: get certificates from staging
+    command: ./letsencrypt-auto --staging --standalone certonly --agree-tos --keep -c cli.ini
+    args:
+      chdir: /opt/letsencrypt
+    when: (cert.stat.exists == false) and (letsencrypt_staging is defined)
     become_user: root
 
   - name: add ssl-cert group
