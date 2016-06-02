@@ -1,0 +1,69 @@
+---
+  - name: git clone letsencrypt
+    git:
+      repo: https://github.com/letsencrypt/letsencrypt
+      dest: /opt/letsencrypt
+    become: yes
+
+  - name: Set up letsencrypt config file
+    template:
+      src:  letsencrypt.j2
+      dest: /opt/letsencrypt/cli.ini
+    become: yes
+
+  - name: check if we already have a letsencrypt cert
+    stat: path="/etc/letsencrypt/live/{{ host_domains.split(', ')[0] }}/fullchain.pem"
+    register: cert
+    become: yes
+
+  - name: get certificates if needed
+    command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini --test-cert
+    args:
+      chdir: /opt/letsencrypt
+    when: (cert.stat.exists == false)
+    become_user: root
+
+  - name: add ssl-cert group
+    group:
+      name: ssl-cert
+      state: present
+      system: yes
+    become: yes
+
+  - name: set permissions on /etc/letsencrypt so ssl-certs group members can get access
+    file:
+      path: /etc/letsencrypt
+      state: directory
+      recurse: yes
+      group: ssl-cert
+      mode: g=rx
+    become: yes
+
+  - name: check to see if nginx is installed to make sure we stop/start with the cron job
+    stat:
+      path: /etc/init.d/nginx
+    register: nginx_installed
+
+  - name: create cron vars
+    set_fact:
+      nginx_pre: ""
+      nginx_post: ""
+
+  - name: configure cron vars based on presence of nginx
+    set_fact:
+      nginx_pre: "/etc/init.d/nginx stop && "
+      nginx_post: " && /etc/init.d/nginx start"
+    when: nginx_installed.stat.exists
+
+  - name: add cert renewal cron job
+    cron:
+      name: "renew cert"
+      cron_file: letsencrypt
+      user: root
+      month: "2,4,6,8,10,12"
+      day: "28"
+      hour: "13"
+      minute: "40"
+      job: "{{ nginx_pre }}/opt/letsencrypt/letsencrypt-auto renew{{ nginx_post }} && chgrp -R ssl-cert /etc/letsencrypt && chmod -R g=rX /etc/letsencrypt"
+      state: present
+    become: yes

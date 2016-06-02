@@ -1,0 +1,7 @@
+1. Pulling down script from github and executing as root is potentially risky
+   see https://github.com/diafygi/letsencrypt-nosudo [nosudo requires user interaction - isn't going to work]
+2. Cron job executes downloaded script as root as well [need to look at improving this later]
+3. What happens if the cronjob fails [1-2 weeks before the cert expires, the user gets an email notifying them.
+we could also monitor for cert expiration to notify the end user. we should discuss what we want to do if
+renewal fails. I've updated the cronjob to be aware of nginx being installed so the job won't fail if it
+hasn't been installed as is the case in the mailshuttle project.]
