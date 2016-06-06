@@ -3,6 +3,7 @@
     git:
       repo: https://github.com/letsencrypt/letsencrypt
       dest: /opt/letsencrypt
+      force: yes
     become: yes
 
   - name: Set up letsencrypt config file
