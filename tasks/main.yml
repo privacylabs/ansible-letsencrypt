@@ -21,21 +21,21 @@
     command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini
     args:
       chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false) and (letsencrypt_staging is undefined) and (skip_letsencrypt is undefined)
+    when: (cert.stat.exists == false) and (letsencrypt_staging is undefined) and (image_creation is undefined)
     become_user: root
 
   - name: get certificates from staging
     command: ./letsencrypt-auto --staging --standalone certonly --agree-tos --keep -c cli.ini
     args:
       chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false) and (letsencrypt_staging is defined) and (skip_letsencrypt is undefined)
+    when: (cert.stat.exists == false) and (letsencrypt_staging is defined) and (image_creation is undefined)
     become_user: root
 
   - name: just compile letsencrypt
     command: ./letsencrypt-auto --help
     args:
       chdir: /opt/letsencrypt
-    when: skip_letsencrypt is defined
+    when: image_creation is defined
 
   - name: add ssl-cert group
     group:
