@@ -5,37 +5,48 @@
       dest: /opt/letsencrypt
       force: yes
     become: yes
+    tags:
+      - packages
 
   - name: Set up letsencrypt config file
     template:
       src:  letsencrypt.j2
       dest: /opt/letsencrypt/cli.ini
     become: yes
-
-  - name: check if we already have a letsencrypt cert
-    stat: path="/etc/letsencrypt/live/{{ host_domains.split(', ')[0] }}/fullchain.pem"
-    register: cert
-    become: yes
-
-  - name: get certificates
-    command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini
-    args:
-      chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false) and (letsencrypt_staging is undefined) and (image_creation is undefined)
-    become_user: root
-
-  - name: get certificates from staging
-    command: ./letsencrypt-auto --staging --standalone certonly --agree-tos --keep -c cli.ini
-    args:
-      chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false) and (letsencrypt_staging is defined) and (image_creation is undefined)
-    become_user: root
+    tags:
+      - configuration
 
   - name: just compile letsencrypt
     command: ./letsencrypt-auto --help
     args:
       chdir: /opt/letsencrypt
-    when: image_creation is defined
+    tags:
+      - packges
+
+  - name: check if we already have a letsencrypt cert
+    stat: path="/etc/letsencrypt/live/{{ host_domains.split(', ')[0] }}/fullchain.pem"
+    register: cert
+    become: yes
+    tags:
+      - configuration
+
+  - name: get certificates
+    command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini
+    args:
+      chdir: /opt/letsencrypt
+    when: (cert.stat.exists == false) and (letsencrypt_staging is undefined)
+    become_user: root
+    tags:
+      - configuration
+
+  - name: get certificates from staging
+    command: ./letsencrypt-auto --staging --standalone certonly --agree-tos --keep -c cli.ini
+    args:
+      chdir: /opt/letsencrypt
+    when: (cert.stat.exists == false) and (letsencrypt_staging is defined)
+    become_user: root
+    tags:
+      - configuration
 
   - name: add ssl-cert group
     group:
@@ -43,6 +54,8 @@
       state: present
       system: yes
     become: yes
+    tags:
+      - packages
 
   - name: set permissions on /etc/letsencrypt so ssl-certs group members can get access
     file:
@@ -52,22 +65,30 @@
       group: ssl-cert
       mode: g=rx
     become: yes
+    tags:
+      - configuration
 
   - name: check to see if nginx is installed to make sure we stop/start with the cron job
     stat:
       path: /etc/init.d/nginx
     register: nginx_installed
+    tags:
+      - configuration
 
   - name: create cron vars
     set_fact:
       nginx_pre: ""
       nginx_post: ""
+    tags:
+      - configuration
 
   - name: configure cron vars based on presence of nginx
     set_fact:
       nginx_pre: "/etc/init.d/nginx stop && "
       nginx_post: " && /etc/init.d/nginx start"
     when: nginx_installed.stat.exists
+    tags:
+      - configuration
 
   - name: add cert renewal cron job
     cron:
@@ -81,3 +102,5 @@
       job: "{{ nginx_pre }}/opt/letsencrypt/letsencrypt-auto renew{{ nginx_post }} && chgrp -R ssl-cert /etc/letsencrypt && chmod -R g=rX /etc/letsencrypt"
       state: present
     become: yes
+    tags:
+      - configuration
