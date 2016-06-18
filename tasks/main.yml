@@ -21,7 +21,7 @@
     args:
       chdir: /opt/letsencrypt
     tags:
-      - packges
+      - packages
 
   - name: check if we already have a letsencrypt cert
     stat: path="/etc/letsencrypt/live/{{ host_domains.split(', ')[0] }}/fullchain.pem"
