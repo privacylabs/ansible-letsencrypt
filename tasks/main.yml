@@ -20,6 +20,7 @@
     command: ./letsencrypt-auto --help
     args:
       chdir: /opt/letsencrypt
+    become_user: root
     tags:
       - packages
 
