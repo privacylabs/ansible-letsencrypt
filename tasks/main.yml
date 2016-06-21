@@ -42,7 +42,6 @@
     become: yes
     tags:
       - packages
-      - configuration
 
   - name: Set up letsencrypt config file
     template:
