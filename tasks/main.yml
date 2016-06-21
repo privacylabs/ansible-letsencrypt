@@ -1,51 +1,53 @@
 ---
-  - name: git clone letsencrypt
-    git:
-      repo: https://github.com/letsencrypt/letsencrypt
-      dest: /opt/letsencrypt
-      force: yes
+  - name: add backport
+    apt_repository:
+      repo: "deb http://ftp.debian.org/debian jessie-backports main"
+      state: present
+      update_cache: yes
     become: yes
     tags:
       - packages
+      - configuration
+
+  - name: install packages
+    apt:
+      name: '{{ item }}'
+      state: latest
+      default_release: "jessie-backports"
+    become: yes
+    with_items: ['certbot']
+    tags:
+      - packages
+      - configuration
+
+  - name: create letsencrypt config directory
+    file:
+      path: /etc/letsencrypt
+      state: directory
+    become: yes
+    tags:
+      - packages
+      - configuration
 
   - name: Set up letsencrypt config file
     template:
       src:  letsencrypt.j2
-      dest: /opt/letsencrypt/cli.ini
-    become: yes
-    tags:
-      - configuration
-
-  - name: just compile letsencrypt
-    command: ./letsencrypt-auto --help
-    args:
-      chdir: /opt/letsencrypt
-    become_user: root
-    tags:
-      - packages
-
-  - name: check if we already have a letsencrypt cert
-    stat: path="/etc/letsencrypt/live/{{ host_domains.split(', ')[0] }}/fullchain.pem"
-    register: cert
+      dest: /etc/letsencrypt/cli.ini
     become: yes
     tags:
       - configuration
 
   - name: get certificates
-    command: ./letsencrypt-auto --standalone certonly --agree-tos --keep -c cli.ini
-    args:
-      chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false) and (letsencrypt_staging is undefined)
-    become_user: root
+    command: certbot --standalone certonly -n --keep -c /etc/letsencrypt/cli.ini
+    when: letsencrypt_staging is undefined
+    become: yes
     tags:
       - configuration
 
   - name: get certificates from staging
-    command: ./letsencrypt-auto --staging --standalone certonly --agree-tos --keep -c cli.ini
-    args:
-      chdir: /opt/letsencrypt
-    when: (cert.stat.exists == false) and (letsencrypt_staging is defined)
-    become_user: root
+    command: certbot --staging --standalone certonly -n --keep -c /etc/letsencrypt/cli.ini
+    when: letsencrypt_staging is defined
+    become: yes
     tags:
       - configuration
 
@@ -100,7 +102,7 @@
       day: "28"
       hour: "13"
       minute: "40"
-      job: "{{ nginx_pre }}/opt/letsencrypt/letsencrypt-auto renew{{ nginx_post }} && chgrp -R ssl-cert /etc/letsencrypt && chmod -R g=rX /etc/letsencrypt"
+      job: "{{ nginx_pre }}/usr/local/bin/certbot renew{{ nginx_post }} && chgrp -R ssl-cert /etc/letsencrypt && chmod -R g=rX /etc/letsencrypt"
       state: present
     become: yes
     tags:
