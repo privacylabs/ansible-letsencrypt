@@ -7,18 +7,33 @@
     become: yes
     tags:
       - packages
-      - configuration
+
+  - name: add backports key
+    apt_key:
+      keyserver: pgpkeys.mit.edu
+      id: 8B48AD6246925553
+    become: yes
+    tags:
+      - packages
+
+  - name: add backports key
+    apt_key:
+      keyserver: pgpkeys.mit.edu
+      id: 7638D0442B90D010
+    become: yes
+    tags:
+      - packages
 
   - name: install packages
     apt:
       name: '{{ item }}'
       state: latest
       default_release: "jessie-backports"
+      force: yes
     become: yes
     with_items: ['certbot']
     tags:
       - packages
-      - configuration
 
   - name: create letsencrypt config directory
     file:
