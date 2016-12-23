@@ -112,10 +112,10 @@
       name: "renew cert"
       cron_file: letsencrypt
       user: root
-      month: "2,4,6,8,10,12"
-      day: "28"
-      hour: "13"
-      minute: "40"
+      month: "*"
+      day: "*"
+      hour: "*/12"
+      minute: "5"
       job: "{{ nginx_pre }}/usr/bin/certbot renew{{ nginx_post }} && chgrp -R ssl-cert /etc/letsencrypt && chmod -R g=rX /etc/letsencrypt"
       state: present
     become: yes
