@@ -43,23 +43,15 @@
     tags:
       - packages
 
-  - name: Set up letsencrypt config file
-    template:
-      src:  letsencrypt.j2
-      dest: /etc/letsencrypt/cli.ini
-    become: yes
-    tags:
-      - configuration
-
   - name: get certificates
-    command: certbot --standalone certonly -n --keep -c /etc/letsencrypt/cli.ini
+    command: certbot --standalone certonly -n --keep -d mail.{{domain}} --agree-tos --email postmaster@{{domain}}
     when: letsencrypt_staging is undefined
     become: yes
     tags:
       - configuration
 
   - name: get certificates from staging
-    command: certbot --staging --standalone certonly -n --keep -c /etc/letsencrypt/cli.ini
+    command: certbot --staging --standalone certonly -n --keep -d mail.{{domain}} --agree-tos --email postmaster@{{domain}}
     when: letsencrypt_staging is defined
     become: yes
     tags:
